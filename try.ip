@@ -1,0 +1,58 @@
+# 先导入为们需要的模块
+import requests
+import json
+KEY = '16b18f21e7b84d6583d1a7722dc5fa72'  # 输入自己的KEY值
+BASE_URL = 'https://westcentralus.api.cognitive.microsoft.com/face/v1.0/detect' #根据自己组成后的终极地址填入人脸识别的api地址
+
+# 沿用API的示范代碼，{subscription key}用KEY代入
+HEADERS = {
+    # Request headers
+    'Content-Type': 'application/json',
+    'Ocp-Apim-Subscription-Key': '{}'.format(KEY),
+}
+
+img_url = 'http://newmedia.nfu.edu.cn/wcy/wp-content/uploads/2018/04/post_20180424__NFU_DoraHacks_imoji%E5%9B%A2%E9%98%9F.jpg'
+data = {
+    'url': '{}'.format(img_url),
+}
+payload = {
+    'returnFaceId': 'true',
+    'returnFaceLandmarks': 'flase',
+    'returnFaceAttributes': '{}'.format('age,gender,glasses,emotion'), #年龄、性别、眼镜、情感
+}
+# 坑。参考http://docs.python-requests.org/zh_CN/latest/user/quickstart.html  【更加复杂的post请求】
+# 差別是 string 字串 vs. dict 字典
+# Azura 使用的是 data = json.dumps(payload) 或 json=payload，data = payload 会出错
+# json.dumps()是将字典格式转换为json格式
+#age,gender,headPose,smile,facialHair,glasses,emotion,hair,makeup,occlusion,accessories,blur,exposure,noise可选参数
+r = requests.post(BASE_URL, data=json.dumps(data), params=payload, headers=HEADERS)#HTTP post请求 请求参数
+
+r.status_code#查看参数回传状态码
+results = r.json() #将回传数据转化为json格式
+results
+
+
+
+# 这一部分尚未尝试成功，一直报错
+import pandas as pd #导入pandas库 
+import requests
+df_ax = pd.json_normalize(results)# 升级pandas才能运行
+df_ax = df_ax.rename ( columns = {"faceAttributes.gender":"性别", 
+                       "faceAttributes.age":"年龄",
+                       "faceAttributes.glasses":"眼镜",
+                       "faceAttributes.emotion.anger":"生气",
+                       "faceAttributes.emotion.contempt":"蔑视",
+                       "faceAttributes.emotion.disgust":"厌恶",
+                       "faceAttributes.emotion.fear":"恐惧",
+                       "faceAttributes.emotion.happiness":"高兴",
+                       "faceAttributes.emotion.neutral":"平静",
+                       "faceAttributes.emotion.sadness":"伤心",
+                       "faceAttributes.emotion.surprise":"惊讶",} )
+df_ax = df_ax.set_index('faceId')
+df_ax = df_ax.iloc[:,4:]
+df_ax.replace({"male":"男性",
+               "female":"女性",
+              "NoGlasses":"没戴眼睛",
+              "ReadingGlasses":"戴眼镜",})
+              
+
